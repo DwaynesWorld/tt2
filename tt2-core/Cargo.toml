@@ -1,13 +1,10 @@
 [package]
-name = "tt2-client"
+name = "tt2-core"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-anyhow = "1.0.97"
-fern = "0.7.1"
+chrono = "0.4.40"
+fern = { version = "0.7.1", features = ["colored"] }
 log = "0.4.27"
-paho-mqtt = "0.13.2"
-rand = "0.9.0"
 tokio = { version = "1.44.1", features = ["full"] }
-tt2-core = { path = "../tt2-core" }

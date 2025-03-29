@@ -1,13 +1,6 @@
 version: "3.8"
 
 services:
-  nginx:
-    image: nginx:latest
-    ports:
-      - "5000:80"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
-
   bus-0:
     image: eclipse-mosquitto:latest
     container_name: bus-0
@@ -28,6 +21,17 @@ services:
       - ./mosquitto/config:/mosquitto/config
       - mosquitto_data:/mosquitto/data
       - mosquitto_log:/mosquitto/log
+    restart: always
+
+  haproxy:
+    image: haproxy
+    volumes:
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+    ports:
+      - "1883:1883"
+    depends_on:
+      - bus-0
+      - bus-1
     restart: always
 
 volumes:

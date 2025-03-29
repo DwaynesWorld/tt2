@@ -5,6 +5,8 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.97"
-ctrlc = "3.4.5"
+fern = "0.7.1"
+log = "0.4.27"
 paho-mqtt = "0.13.2"
 tokio = { version = "1.44.1", features = ["full"] }
+tt2-core = { path = "../tt2-core" }
