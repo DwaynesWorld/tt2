@@ -40,16 +40,16 @@ async fn main() -> anyhow::Result<()> {
     client.connect(options).await?;
 
     let c = client.clone();
-    let listener = tokio::spawn(listen(c, stream));
+    let subscriber = tokio::spawn(subscribe(c, stream));
 
     let c = client.clone();
-    let ping = tokio::spawn(ping(c));
+    let publisher = tokio::spawn(publish(c));
 
     let (ctrl_c, terminate) = create_shutdown_signals();
 
     tokio::select! {
-        _ = listener => {},
-        _ = ping => {},
+        _ = subscriber => {},
+        _ = publisher => {},
         _ = ctrl_c => {},
         _ = terminate => {},
     }
@@ -62,10 +62,33 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn ping(client: AsyncClient) -> anyhow::Result<()> {
+async fn subscribe(
+    client: AsyncClient,
+    stream: AsyncReceiver<Option<Message>>,
+) -> anyhow::Result<()> {
+    let mut client = client;
+    let mut stream = stream;
+
     client.subscribe(SUB_TOPIC, QOS).await?;
     info!("Subscribing to topics: {:?}", SUB_TOPIC);
 
+    loop {
+        match stream.recv().await {
+            Ok(result) if result.is_some() => {
+                let message = result.unwrap();
+                info!("Received pong: {}", message.payload_str());
+            }
+            e => {
+                error!("err is_connected={} e={:?}", client.is_connected(), e);
+                let _ = reconnect(&client).await;
+                stream = client.get_stream(1000);
+                client.subscribe(SUB_TOPIC, QOS).await?;
+            }
+        }
+    }
+}
+
+async fn publish(client: AsyncClient) -> anyhow::Result<()> {
     let greetings: Vec<&str> = vec!["Hello", "Hi", "Hey", "Greetings", "Salutations", "Howdy"];
 
     loop {
@@ -87,29 +110,6 @@ async fn ping(client: AsyncClient) -> anyhow::Result<()> {
             .await?;
 
         tokio::time::sleep(Duration::from_secs(3)).await;
-    }
-}
-
-async fn listen(client: AsyncClient, stream: AsyncReceiver<Option<Message>>) -> anyhow::Result<()> {
-    let mut client = client;
-    let mut stream = stream;
-
-    client.subscribe(SUB_TOPIC, QOS).await?;
-    info!("Subscribing to topics: {:?}", SUB_TOPIC);
-
-    loop {
-        match stream.recv().await {
-            Ok(result) if result.is_some() => {
-                let message = result.unwrap();
-                info!("Received pong: {}", message.payload_str());
-            }
-            e => {
-                error!("err is_connected={} e={:?}", client.is_connected(), e);
-                let _ = reconnect(&client).await;
-                stream = client.get_stream(1000);
-                client.subscribe(SUB_TOPIC, QOS).await?;
-            }
-        }
     }
 }
 

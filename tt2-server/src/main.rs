@@ -40,11 +40,11 @@ async fn main() -> anyhow::Result<()> {
     client.connect(options).await?;
 
     let c = client.clone();
-    let listener = tokio::spawn(listen(c, stream));
+    let subscriber = tokio::spawn(subscribe(c, stream));
     let (ctrl_c, terminate) = create_shutdown_signals();
 
     tokio::select! {
-        _ = listener => {},
+        _ = subscriber => {},
         _ = ctrl_c => {},
         _ = terminate => {},
     }
@@ -57,7 +57,10 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn listen(client: AsyncClient, stream: AsyncReceiver<Option<Message>>) -> anyhow::Result<()> {
+async fn subscribe(
+    client: AsyncClient,
+    stream: AsyncReceiver<Option<Message>>,
+) -> anyhow::Result<()> {
     let mut client = client;
     let mut stream = stream;
 
